@@ -26,6 +26,7 @@ class AliHelper:
         return request
 
     def _get_client_response(self,client,domain,version,action_name,**params):
+     #   print(params)
         print('_get_client_response invocked !')
         request = self._create_request(domain,version,action_name,**params)
         res = client.do_action_with_exception(request)
@@ -75,14 +76,13 @@ class AliHelper:
 
 
     def get_instances_info(self,domain,version,**params):
-        response = helper._get_all_responses(domain,version,'DescribeInstances',**params)
+        response = self._get_all_responses(domain,version,'DescribeInstances',**params)
         insName = []
         innerIp = []
         pubIp = []
         regionId = []
         secGroupId = []
         for r in response:
- #           instances = json.loads(r)
             iCount = 0
             for instance in r['Instances']['Instance']:
                 iCount += 1
@@ -98,50 +98,53 @@ class AliHelper:
         print('write data into file instances_info.csv')
 
     
-    def get_security_groups(self,domain,version,action
+    def get_security_groups(self,domain,version,**params):
+        response = self._get_all_responses(domain,version,'DescribeSecurityGroups',**params)
+        groupId = []
+        regionId = []
+        description = []
+        innerAccPolicy = []
+        vpcId = []
+        permission = []
+        for r in response:
+            for group in r['SecurityGroups']['SecurityGroup']:
+                regionId.append(r['RegionId'])
+                groupId.append(group['SecurityGroupId'])
+                description.append(repr(group['Description']))
+
+        groupRegion = list(zip(groupId,regionId))
+
+        groupId2 = []
+        regionId2 = []
+        description2 = []
+        innerAccPolicy2 = []
+        vpcId2 = []
+
+ #       print(len(groupRegion))
+        for gId,rId in groupRegion:
+            #print(gId,rId)
+            for c in self._clients:
+                if c.get_region_id() == rId :
+                #    print(gId,rId)            
+                    response = self._get_client_response(c,domain,version,'DescribeSecurityGroupAttribute',SecurityGroupId = gId)
+               # else:
+               #     print('else',rId,repr(c.get_region_id()))
+               #     print(response)
+                    for p in response['Permissions']['Permission']:
+                        groupId2.append(response['SecurityGroupId'])
+                        regionId2.append(response['RegionId'])
+                        innerAccPolicy2.append(response['InnerAccessPolicy'])
+                        vpcId2.append(response['VpcId'])
+                        description2.append(response['Description'])
+                        permission.append(p)
+            
+                
+        dataFrame = pd.DataFrame({'SecurityGroupId':groupId2,'Description':description2,'RegionId':regionId2,'VpcId':vpcId2,'InnerAccessPolicy':innerAccPolicy2,'Permissons':permission},columns=['SecurityGroupId', 'Description','RegionId','VpcId','InnerAccessPolicy','Permissons'])
+        dataFrame.to_csv("security_group_info.csv",index=False,sep=',')
+        print('write data into file security_group_info.csv')
 
 
 
-helper = AliHelper('LTAI9XTbkEzHWkxY','DgnunLljMOPylukmteF2KXLATBG4rn')
-shClient = helper.create_client('cn-shanghai')
-hzClient = helper.create_client('cn-hangzhou')
-#helper.get_instances_info('ecs.aliyuncs.com','2014-05-26','DescribeInstances',PageNumber = '1',PageSize = '10')
-helper.get_instances_info('ecs.aliyuncs.com','2014-05-26',PageNumber = '1',PageSize = '30')
-#request = helper._create_request('ecs.aliyuncs.com','2014-05-26','DescribeInstances',PageNumber = '1',PageSize = '20')
-#hzRes = shClient.do_action_with_exception(request)
-#print(hzRes)
-
-
-#
-
-#
-#shRes = shClient.do_action_with_exception(request)
-#print(shRes)
-#print(shClient.get_region_id())
-#request2 = helper.create_request('ecs.aliyuncs.com','2014-05-26','DescribeInstances',PageNumber = '1',PageSize = '100')
-#hzRes = hzClient.do_action_with_exception(request2)
-#print(hzRes)
-#print(hzClient.get_region_id())
-
- #   print (obj['InnerIpAddress'])
-
-#request2 = helper.create_request('ecs.aliyuncs.com','2014-05-26','DescribeInstances',PageNumber = '1',PageSize = '100')
-#response2 = helper.get_response(request2)
-#print(response)
-#print(response2)
-
-
-##获取ip地址
-#requestIp = helper.create_request('ecs.aliyuncs.com','2014-05-26','DescribeNetworkInterfaces',PageNumber = '1',PageSize = '30')
-#responseIp = helper.get_response(requestIp)
-#print(responseIp)
-
-##获取lsb地址，对应集群和监控端口
-#requestLsb = helper.create_request('slb.aliyuncs.com','2014-05-15','DescribeLoadBalancers',PageNumber = '1',PageSize = '30')
-#responseLsb = helper.get_response(requestLsb)
-#print(responseLsb)
-
-##获取安全组列表和内容、安全组和ECS实例对应的关系
 
 
 
