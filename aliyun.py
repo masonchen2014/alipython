@@ -144,7 +144,34 @@ class AliHelper:
         print('write data into file security_group_info.csv')
 
 
+    def get_load_balancers(self,domain,version,**params):
+        response = self._get_all_responses(domain,version,'DescribeLoadBalancers',**params)
+        lbId = []
+        for r in response:
+            for ld in r['LoadBalancers']['LoadBalancer']:
+                lbId.append((ld['LoadBalancerId'],ld['RegionId']))
 
+#        for l in lbId:
+ #           print(l)
+#        groupRegion = list(zip(groupId,regionId))
 
+        loadBalancerId = []
+        lbName = []
+        address = []
+        backends = []
+        listenerPortsAndProtocol = []
+        
+        for l,rId in lbId:
+            #print(gId,rId)
+            for c in self._clients:
+                if c.get_region_id() == rId :
+                    response = self._get_client_response(c,domain,version,'DescribeLoadBalancerAttribute',LoadBalancerId = l)
+                    loadBalancerId.append(response['LoadBalancerId'])
+                    lbName.append(response['LoadBalancerName'])
+                    address.append(response['Address'])
+                    backends.append(repr(response['BackendServers']['BackendServer']))
+                    listenerPortsAndProtocol.append(repr(response['ListenerPortsAndProtocol']['ListenerPortAndProtocol']))
 
-
+        dataFrame = pd.DataFrame({'LoadBalancerId':loadBalancerId,'LoadBalancerName':lbName,'Address':address,'BackendServers':backends,'ListenerPortAndProtocol':listenerPortsAndProtocol},columns=['LoadBalancerId', 'LoadBalancerName','Address','BackendServers','ListenerPortAndProtocol'])
+        dataFrame.to_csv("load_balancers_info.csv",index=False,sep=',')
+        print('write data into file load_balancers_info.csv')
