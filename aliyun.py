@@ -175,3 +175,42 @@ class AliHelper:
         dataFrame = pd.DataFrame({'LoadBalancerId':loadBalancerId,'LoadBalancerName':lbName,'Address':address,'BackendServers':backends,'ListenerPortAndProtocol':listenerPortsAndProtocol},columns=['LoadBalancerId', 'LoadBalancerName','Address','BackendServers','ListenerPortAndProtocol'])
         dataFrame.to_csv("load_balancers_info.csv",index=False,sep=',')
         print('write data into file load_balancers_info.csv')
+
+    def create_load_balancers_dict(self,domain,version,**params):
+        response = self._get_all_responses(domain,version,'DescribeLoadBalancers',**params)
+        lbId = []
+        for r in response:
+            for ld in r['LoadBalancers']['LoadBalancer']:
+                lbId.append((ld['LoadBalancerId'],ld['RegionId']))
+
+        lbBackendsDict = {}
+        for l,rId in lbId:
+            #print(gId,rId)
+            for c in self._clients:
+                if c.get_region_id() == rId :
+                    response = self._get_client_response(c,domain,version,'DescribeLoadBalancerAttribute',LoadBalancerId = l)
+                    backends = response['BackendServers']['BackendServer']
+                    lbBackendsDict[l]=(rId,backends)
+
+        return lbBackendsDict
+#        print(lbBackendsDict)
+
+    def get_backend_servers_from_dict(self,ldDict,lbId):
+        if lbId in ldDict:
+            regionId,backends = ldDict[lbId]
+            serverId = []
+            for server in backends:
+                serverId.append(server['ServerId'])
+         #   print(regionId,serverId)
+            return regionId,serverId
+        else:
+            print('not in the dict')
+
+    def set_backend_server(self,domain,version,regionId,lbId,serverId,weight):
+        for c in self._clients:
+            if c.get_region_id() == regionId :
+                response = self._get_client_response(c,domain,version,'SetBackendServers',LoadBalancerId = lbId,BackendServers = [{"ServerId":serverId,"Weight":repr(weight)}])
+                print(response)
+                
+        
+        
