@@ -1,6 +1,15 @@
 from fabric.api import *
-
+from aliyun import AliHelper
 import deploy_service
+
+
+helper = AliHelper('LTAI9XTbkEzHWkxY','DgnunLljMOPylukmteF2KXLATBG4rn')
+shClient = helper.create_client('cn-shanghai')
+hzClient = helper.create_client('cn-hangzhou')
+slbDict = helper.create_load_balancers_dict('slb.aliyuncs.com','2014-05-15')
+insDict = helper.get_instances_info('ecs.aliyuncs.com','2014-05-26',PageNumber = '1',PageSize = '100')
+
+
 #from aliyun import AliHelper
 
 #helper = AliHelper('LTAI9XTbkEzHWkxY','DgnunLljMOPylukmteF2KXLATBG4rn')
@@ -8,10 +17,10 @@ import deploy_service
 #from deploy_service import DepolyServce
 
 
-ds = deploy_service.DeployServce('./war/ROOT.war','/home/chenmusheng/deploy','/home/chenmusheng/apache-tomcat-8.5.6','48009','service_name','slb_id',True)
+#ds = deploy_service.DeployServce('./war/ROOT.war','/home/chenmusheng/deploy','/home/chenmusheng/apache-tomcat-8.5.6','48009','service_name','slb_id',True)
 
-env.hosts = ds.get_hosts()
-print(env.hosts)
+#env.hosts = []#ds.get_hosts()
+#print(env.hosts)
 #env.hosts = ['10.0.3.235:3721']
 #env.hosts = ['114.55.235.185'] #,'121.199.4.107:2222']
 env.user = 'chenmusheng'
@@ -53,3 +62,31 @@ def deploy2():
     ds.copy_war()
     ds.start_tomcat()
     ds.test_tomcat()
+
+index = 0
+def deploy3(ds,serviceId):
+    global index
+    print(serviceId[index])
+
+    ds.set_host_weight(index,99)
+#    ds.print_attrs()
+    if ds.valid == True:
+        ds.set_host_weight(index,99)
+#        helper.set_backend_server('slb.aliyuncs.com','2014-05-15','cn-hangzhou','lb-bp1pejpw1dkcldz9z3npb','i-bp1i1e1nx6x2hzqce06n',100)
+        ds.mkdir_remote()
+        ds.upload_file()
+        ds.shutdown_tomcat()
+        ds.copy_war()
+        ds.start_tomcat()
+        ds.test_tomcat()
+    else:
+        print('not valid service!')
+    index =index +1
+
+def deploy4():
+    dss = deploy_service.DeployServices('config.ini')
+    for service in dss.get_services():
+        service.set_alihelper(helper)
+        host_list,serverId = service.get_hosts(insDict,slbDict)
+        print(host_list,serverId)
+        execute(deploy3,service,serverId,hosts=host_list)

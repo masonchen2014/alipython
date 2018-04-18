@@ -78,25 +78,36 @@ class AliHelper:
     def get_instances_info(self,domain,version,**params):
         response = self._get_all_responses(domain,version,'DescribeInstances',**params)
         insName = []
+        insId = []
         innerIp = []
         pubIp = []
         regionId = []
         secGroupId = []
+        insDict = {}
         for r in response:
             iCount = 0
             for instance in r['Instances']['Instance']:
                 iCount += 1
+                insDict[instance['InstanceId']] = (instance['InnerIpAddress']['IpAddress'],instance['PublicIpAddress']['IpAddress'])
                 insName.append(repr(instance['InstanceName']))
+                insId.append(instance['InstanceId'])
                 innerIp.append(repr(instance['InnerIpAddress']['IpAddress']))
                 pubIp.append(repr(instance['PublicIpAddress']['IpAddress']))
                 regionId.append(repr(instance['RegionId']))
                 secGroupId.append(repr(instance['SecurityGroupIds']['SecurityGroupId']))
             print('the nubmer of instance in obj is ',iCount)
         print('instances number is :',len(insName))
-        dataFrame = pd.DataFrame({'InstanceName':insName,'InnerIp':innerIp,'PublicIp':pubIp,'RegionId':regionId,'SecGroupIds':secGroupId},columns=['InstanceName', 'InnerIp', 'PublicIp','RegionId','SecGroupIds'])
+        dataFrame = pd.DataFrame({'InstanceName':insName,'InstanceId':insId,'InnerIp':innerIp,'PublicIp':pubIp,'RegionId':regionId,'SecGroupIds':secGroupId},columns=['InstanceName','InstanceId','InnerIp', 'PublicIp','RegionId','SecGroupIds'])
         dataFrame.to_csv("instances_info.csv",index=False,sep=',')
         print('write data into file instances_info.csv')
+        return insDict
 
+    def get_server_inner_ip_from_dict(self,instanceDict,instanceId):
+        innerIp,public= instanceDict[instanceId]
+        for ip in innerIp:
+            return ip
+        else:
+            return ''
     
     def get_security_groups(self,domain,version,**params):
         response = self._get_all_responses(domain,version,'DescribeSecurityGroups',**params)
@@ -193,7 +204,7 @@ class AliHelper:
                     lbBackendsDict[l]=(rId,backends)
 
         return lbBackendsDict
-#        print(lbBackendsDict)
+        print(lbBackendsDict)
 
     def get_backend_servers_from_dict(self,ldDict,lbId):
         if lbId in ldDict:
