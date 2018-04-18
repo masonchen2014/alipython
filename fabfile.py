@@ -1,6 +1,7 @@
 from fabric.api import *
 from aliyun import AliHelper
 import deploy_service
+import time
 
 
 helper = AliHelper('LTAI9XTbkEzHWkxY','DgnunLljMOPylukmteF2KXLATBG4rn')
@@ -68,10 +69,12 @@ def deploy3(ds,serviceId):
     global index
     print(serviceId[index])
 
-    ds.set_host_weight(index,99)
+#    ds.set_host_weight(index,100)
 #    ds.print_attrs()
     if ds.valid == True:
-        ds.set_host_weight(index,99)
+        ds.set_host_weight(index,0)
+        print('sleep 60 seconds...')
+        time.sleep(60)
 #        helper.set_backend_server('slb.aliyuncs.com','2014-05-15','cn-hangzhou','lb-bp1pejpw1dkcldz9z3npb','i-bp1i1e1nx6x2hzqce06n',100)
         ds.mkdir_remote()
         ds.upload_file()
@@ -79,6 +82,9 @@ def deploy3(ds,serviceId):
         ds.copy_war()
         ds.start_tomcat()
         ds.test_tomcat()
+        ds.set_host_weight(index,100)
+        print('sleep 180 seconds...')
+        time.sleep(180)
     else:
         print('not valid service!')
     index =index +1
