@@ -29,7 +29,7 @@ def deploySingleService(ds):
 #usage : fab deploy:service_name1,service_name2
 def deploy(*service_names):
     #Create AliHelper instance,get loadbalancers info and all instances info 
-    helper = AliHelper('LTAI9XTbkEzHWkxY','DgnunLljMOPylukmteF2KXLATBG4rn')
+    helper = AliHelper('','')
     shClient = helper.create_client('cn-shanghai')
     hzClient = helper.create_client('cn-hangzhou')
     slbDict = helper.create_load_balancers_dict('slb.aliyuncs.com','2014-05-15')
