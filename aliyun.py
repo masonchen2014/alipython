@@ -9,13 +9,13 @@ class AliHelper:
         self._access_key_secret = access_key_secret
         self._clients = []
 
+    # per region per client
     def create_client(self,region_id):
         client=AcsClient(self._access_key,self._access_key_secret,region_id)
         self._clients.append(client)
-       # print(client.get_region_id())
         return client
-        
-
+    
+    # create aliyun API request
     def _create_request(self,domain,version,action_name,**params):
         request = CommonRequest()
         request.set_domain(domain)
@@ -25,14 +25,13 @@ class AliHelper:
             request.add_query_param(k,v)
         return request
 
+    # Send an aliyun API request from specified client,get the corresponding json object
     def _get_client_response(self,client,domain,version,action_name,**params):
-     #   print(params)
-        print('_get_client_response invocked !')
         request = self._create_request(domain,version,action_name,**params)
         res = client.do_action_with_exception(request)
-      #  print(res)
         return json.loads(res)
 
+    # For every client,get results according to the params
     def _get_response(self,domain,version,action_name,**params):
         'get response for single page.'
         response = []
@@ -41,12 +40,12 @@ class AliHelper:
             response.append(self._get_client_response(c,domain,version,action_name,**params))
         return response
 
+    # For every client,get all the results
     def _get_all_responses(self,domain,version,action_name,**params):
         'get response for all pages.'
         response = []
         pageSize = 100
-       # if 'PageNumber' in params:
-        #    pageNum = params['PageNumber']
+
         if 'PageSize' in params:
             pageSize = int(params['PageSize'])
 
@@ -75,6 +74,7 @@ class AliHelper:
         return response
 
 
+    # Get all the instance info that running on aliyun
     def get_instances_info(self,domain,version,**params):
         response = self._get_all_responses(domain,version,'DescribeInstances',**params)
         insName = []
@@ -95,13 +95,14 @@ class AliHelper:
                 pubIp.append(repr(instance['PublicIpAddress']['IpAddress']))
                 regionId.append(repr(instance['RegionId']))
                 secGroupId.append(repr(instance['SecurityGroupIds']['SecurityGroupId']))
-            print('the nubmer of instance in obj is ',iCount)
-        print('instances number is :',len(insName))
-        dataFrame = pd.DataFrame({'InstanceName':insName,'InstanceId':insId,'InnerIp':innerIp,'PublicIp':pubIp,'RegionId':regionId,'SecGroupIds':secGroupId},columns=['InstanceName','InstanceId','InnerIp', 'PublicIp','RegionId','SecGroupIds'])
-        dataFrame.to_csv("instances_info.csv",index=False,sep=',')
-        print('write data into file instances_info.csv')
+   #         print('the nubmer of instance in obj is ',iCount)
+   #     print('instances number is :',len(insName))
+  #      dataFrame = pd.DataFrame({'InstanceName':insName,'InstanceId':insId,'InnerIp':innerIp,'PublicIp':pubIp,'RegionId':regionId,'SecGroupIds':secGroupId},columns=['InstanceName','InstanceId','InnerIp', 'PublicIp','RegionId','SecGroupIds'])
+   #     dataFrame.to_csv("instances_info.csv",index=False,sep=',')
+  #      print('write data into file instances_info.csv')
         return insDict
 
+    # Get an inner ip and a public ip for specified instance Id
     def get_server_ip_from_dict(self,instanceDict,instanceId):
         innerIp,pubIp= instanceDict[instanceId]
         iIp = ''
@@ -112,6 +113,7 @@ class AliHelper:
             pIp = pubIp[0]
         return iIp,pIp
 
+    # Get security groups info and write them into csv file
     def get_security_groups(self,domain,version,**params):
         response = self._get_all_responses(domain,version,'DescribeSecurityGroups',**params)
         groupId = []
@@ -157,17 +159,13 @@ class AliHelper:
         dataFrame.to_csv("security_group_info.csv",index=False,sep=',')
         print('write data into file security_group_info.csv')
 
-
+    # Get load balancers info and write them into csv file
     def get_load_balancers(self,domain,version,**params):
         response = self._get_all_responses(domain,version,'DescribeLoadBalancers',**params)
         lbId = []
         for r in response:
             for ld in r['LoadBalancers']['LoadBalancer']:
                 lbId.append((ld['LoadBalancerId'],ld['RegionId']))
-
-#        for l in lbId:
- #           print(l)
-#        groupRegion = list(zip(groupId,regionId))
 
         loadBalancerId = []
         lbName = []
@@ -190,6 +188,7 @@ class AliHelper:
         dataFrame.to_csv("load_balancers_info.csv",index=False,sep=',')
         print('write data into file load_balancers_info.csv')
 
+    # Create a dict that stores loadbalancerId、regionId and all its backend server ids
     def create_load_balancers_dict(self,domain,version,**params):
         response = self._get_all_responses(domain,version,'DescribeLoadBalancers',**params)
         lbId = []
@@ -209,6 +208,7 @@ class AliHelper:
         return lbBackendsDict
         print(lbBackendsDict)
 
+    #Get all the backend server ids of specfied loadbalancer 
     def get_backend_servers_from_dict(self,ldDict,lbId):
         if lbId in ldDict:
             regionId,backends = ldDict[lbId]
@@ -220,6 +220,7 @@ class AliHelper:
         else:
             print('not in the dict')
 
+    #Set weight of specified backend server 
     def set_backend_server(self,domain,version,regionId,lbId,serverId,weight):
         for c in self._clients:
             if c.get_region_id() == regionId :
