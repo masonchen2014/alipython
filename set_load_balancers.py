@@ -1,6 +1,6 @@
 from aliyun import AliHelper
 
-helper = AliHelper('LTAI9XTbkEzHWkxY','DgnunLljMOPylukmteF2KXLATBG4rn')
+helper = AliHelper('','')
 shClient = helper.create_client('cn-shanghai')
 hzClient = helper.create_client('cn-hangzhou')
 #for line in open("load_balancers.txt"):
