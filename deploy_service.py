@@ -2,6 +2,7 @@ from fabric.api import *
 from configparser import ConfigParser
 from aliyun import AliHelper
 import time
+import requests
 
 class DeployServce:
     def __init__(self,war_file_path,target_tmp_path,tomcat_path,service_port,service_name,slb_id,valid):
@@ -30,15 +31,19 @@ class DeployServce:
         self.alihelper = alihelper
 
     def get_hosts(self,instanceDict,slbDict):
-        hosts = []
+        innerHosts = []
+        pubHosts = []
         regionId,serverId = self.alihelper.get_backend_servers_from_dict(slbDict,self.slb_id)
         for server in serverId:
-            hosts.append(self.alihelper.get_server_inner_ip_from_dict(instanceDict,server))
+            iHost,pHost = self.alihelper.get_server_ip_from_dict(instanceDict,server)
+            innerHosts.append(iHost)
+            pubHosts.append(pHost)
 #        print(hosts)
         #return ['10.0.3.235:3721','114.55.235.185']
         self.regionId = regionId
         self.serverId = serverId
-        return hosts,serverId
+        self.hosts = pubHosts
+        return innerHosts,pubHosts,serverId
 
     def set_host_weight(self,index,weight):
 #        print(self.regionId)
@@ -67,8 +72,20 @@ class DeployServce:
     def start_tomcat(self):
         sudo('set -m;bash '+self.tomcatpath+'bin/startup.sh &')
 
-    def test_tomcat(self): 
-        run('curl -v localhost:'+self.sport)
+    def test_tomcat(self,index,trytimes): 
+#        run('curl -v http://localhost:7064/index.html')
+        try_times = trytimes
+        i = 1
+        while i <= try_times:
+            print('http://'+self.hosts[index]+':'+self.sport+'/index.html')
+            time.sleep(5)
+            res = requests.get('http://'+self.hosts[index]+':'+self.sport+'/index.html')
+            if res.status_code == 200:
+                print('service started!')
+                break
+        else:
+            print('can not access the service!!!')
+#        run('curl -v localhost:'+self.sport)
 
 
 class DeployServices:

@@ -77,11 +77,11 @@ def deploy3(ds,serviceId):
         time.sleep(60)
 #        helper.set_backend_server('slb.aliyuncs.com','2014-05-15','cn-hangzhou','lb-bp1pejpw1dkcldz9z3npb','i-bp1i1e1nx6x2hzqce06n',100)
         ds.mkdir_remote()
-        ds.upload_file()
+ #       ds.upload_file()
         ds.shutdown_tomcat()
         ds.copy_war()
         ds.start_tomcat()
-        ds.test_tomcat()
+        ds.test_tomcat(index,5)
         ds.set_host_weight(index,100)
         print('sleep 180 seconds...')
         time.sleep(180)
@@ -93,6 +93,13 @@ def deploy4():
     dss = deploy_service.DeployServices('config.ini')
     for service in dss.get_services():
         service.set_alihelper(helper)
-        host_list,serverId = service.get_hosts(insDict,slbDict)
-        print(host_list,serverId)
-        execute(deploy3,service,serverId,hosts=host_list)
+        ihost_list,phost_list,serverId = service.get_hosts(insDict,slbDict)
+        print(phost_list,serverId)
+        execute(deploy3,service,serverId,hosts=phost_list)
+
+
+#just for test
+def deploy5(ds,serviceId):
+    ds.test_tomcat(0,3)
+
+

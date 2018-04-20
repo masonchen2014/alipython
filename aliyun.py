@@ -102,13 +102,16 @@ class AliHelper:
         print('write data into file instances_info.csv')
         return insDict
 
-    def get_server_inner_ip_from_dict(self,instanceDict,instanceId):
-        innerIp,public= instanceDict[instanceId]
-        for ip in innerIp:
-            return ip
-        else:
-            return ''
-    
+    def get_server_ip_from_dict(self,instanceDict,instanceId):
+        innerIp,pubIp= instanceDict[instanceId]
+        iIp = ''
+        pIp = ''
+        if innerIp:
+            iIp = innerIp[0]
+        if pubIp:
+            pIp = pubIp[0]
+        return iIp,pIp
+
     def get_security_groups(self,domain,version,**params):
         response = self._get_all_responses(domain,version,'DescribeSecurityGroups',**params)
         groupId = []
